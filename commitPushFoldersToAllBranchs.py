@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import shutil
 
 def check_arguments():
     if len(sys.argv) != 3:
@@ -39,14 +40,26 @@ def copy_folders_to_branch(repo_directory, branch, source_directory):
     for item in os.listdir(source_directory):
         src_path = os.path.join(source_directory, item)
         dest_path = os.path.join(repo_directory, item)
+        
+        # If the folder already exists in the repo, remove it before copying
+        if os.path.exists(dest_path):
+            print(f"Folder {item} already exists in the repository. Replacing it.")
+            if os.path.isdir(dest_path):
+                shutil.rmtree(dest_path)  # Remove directory and all its contents
+            else:
+                os.remove(dest_path)  # Remove file if it's a file
+        
+        # Copy the folder or file from source to repo
         if os.path.isdir(src_path):
-            subprocess.run(f"cp -r {src_path} {dest_path}", shell=True)
+            shutil.copytree(src_path, dest_path)
+        else:
+            shutil.copy2(src_path, dest_path)
     
     # Stage, commit, and push the changes
     run_command("git add .", cwd=repo_directory)
-    run_command(f'git commit -m "Add new folders from {source_directory} to {branch}"', cwd=repo_directory)
+    run_command(f'git commit -m "Replace folders from {source_directory} in {branch}"', cwd=repo_directory)
     run_command(f"git push origin {branch}", cwd=repo_directory)
-    print(f"Successfully added folders from {source_directory} to {branch}")
+    print(f"Successfully replaced folders from {source_directory} in {branch}")
 
 def main():
     check_arguments()
